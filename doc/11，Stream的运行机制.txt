@@ -1,0 +1,29 @@
+1，案例
+   Stream<Integer> stream = Stream.generate(() -> new Random().nextInt()) // 会返回 ReferencePipeline 类型的流对象
+           .limit(20)   //链操作（中间操作），会返回一个新的流对象
+           .peek(       //链操作（中间操作），会返回一个新的流对象
+                x -> {
+                    System.out.println("peek" + x);
+                }
+           ).filter(    //链操作（中间操作），会返回一个新的流对象
+                x -> {
+                    System.out.println("filter" + x);
+                    return true;
+                }
+           );
+   long count = stream.count(); // 最后在终止操作中，会让每个元素都执行中间操作的”回调“。
+   System.out.println(count);
+
+   运行结论：
+    1，peek 和 filter 是交替执行的，并不是先执行完 peek，再执行 filter 。
+      而是对于每条数据先执行 peek，再执行 filter ，然后再执行下一条数据。
+      即：所有操作是链式操作，一个数据只执行一次链路。
+   断点可知：
+    1，stream 对象的类型为：ReferencePipeline  可以看成是Xxx流水线的意思。
+    2，每个中间操作都会创建一个新的流对象，故才是一个链式调用。每个新的流对象都有一个属性 sourceStage 指向同一个地方，就是 Head，
+      Head -> nextStage -> nextStage -> null
+    3，中间操作中，无状态的操作会每个数据，顺序调用中间操作。
+       但是若中间操作中，包含"有状态的操作”，则会被截断，即所有的数据先执行完“有状态操作”之前的中间操作的结果再执行“有状态的操作”，然后再
+       往下执行其他中间操作。
+
+    4，parallel / sequetial 这两个操作也是中间操作，也是返回Stream，但是他们不创建流，他们只修改 Head 的并行标志。

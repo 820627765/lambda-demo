@@ -1,0 +1,133 @@
+1，概念
+   Spring WebFlux 是spring5 提出的一种新的开发 web项目的技术栈，是非阻塞的开发模式。
+   运行在netty 或 servlet3.1以上的容器上，支持很高的并发量。
+
+   也就是我们现在开发web项目有两个选择：
+    - 可以使用以前的MVC的开发模式
+    - webflux 开发模式
+
+2，传统spring MVC 模式 和 WebFlux模式的对比
+  - WebFlux 是非阻塞的web框架，即在一个线程里，可以处理多个请求。而传统的一个请求就会对应一个线程。
+  - WebFlux 运行在 netty 或 Servlet3.1 以上的容器上。传统必须运行在Servlet容器上。
+  - WebFlux 不支持关系型数据库。？？
+
+3，WebFlux 的优势
+   - 支持高并发量：在相同的线程数情况下，支持处理更加多的请求。
+
+4，tomcat是怎么处理请求的及”什么是阻塞servlet“？
+   当请求发送到 tomcat 后，tomcat会为每个请求启动一个线程去处理。而线程里面会调用对应的servlet进行处理。
+   当使用同步servlet的时候，servlet的执行逻辑花费多长时间，tomcat启动的这个线程就会等多长时间。这就是所说的
+   ”阻塞servlet“。
+
+5，异步Servlet？
+   在MyServlet的service()方法中将执行业务的逻辑开启一个线程去处理，处理完成后，通过异步上下文对象，通知请求执行结束了。
+   public void service(){
+       //表示开启异步
+       AsyncContext context = request.startAsync();
+       //开启线程执行业务逻辑
+       new Thread(new Runnable(){
+        public void run(){
+            //业务逻辑
+            // xxx......
+            //业务代码处理完毕，通过请求异步上下文对象通知结束
+            context.complete();
+        }
+       }).start();
+   }
+   这就是，异步Servlet的工作机制，即：接受请求的Servlet业务逻辑需要开启新的线程去处理逻辑，不要阻塞其他请求的进入。
+   从而实现同一个Servlet线程可以很快的接收其他请求并处理。即不会阻塞tomcat的servlet线程，因为业务耗时操作都开启了新的
+   线程去处理，处理完成后通过异步上下文告知本次请求处理完成。
+
+6，WebFlux 项目搭建
+  6.1 新建springboot项目，并引入 webFlux依赖
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
+  6.2 编写主启动类
+      @SpringBootApplication
+      public class WebFluxApplication {
+          public static void main(String[] args) {
+              SpringApplication.run(WebFluxApplication.class, args);
+          }
+      }
+  6.3 编写控制器，并编写WebFlux模式的控制器方法
+      @RestController
+      public class TestController {
+          /**
+           * 原springMVC的写法
+           * @return
+           */
+          @GetMapping("/1")
+          public String get1() {
+              return "something";
+          }
+
+          /**
+           * WebFlux 的写法，返回的是 Mono 或 Flux 对象
+           * Mono 表示 0-1个元素
+           * Flux 表示 0-N个元素
+           * @return
+           */
+          @GetMapping("/2")
+          public Mono<String> get2() {
+              return Mono.just("something");
+              // 因为Mono流对象的终止方法没有被调用，所以userDao.queryList()是不会执行的。
+              return Mono.fromSupplier(()->userDao.queryUserList());
+          }
+
+          @GetMapping("/3")
+          public Flux<String> flux(){
+            return Flux.fromStream(IntStream.range(1,5).mapToObj(i->{return "flux data --" + i;}));
+          }
+        }
+
+  6.4 测试及结果：
+      http://localhost:8080/1
+      http://localhost:8080/2
+      发现两种方式都能访问，那么区别在哪儿呢？
+      1，写法不一样，webflux返回值是Mono 或 Flux 对象。
+      2，webflux 控制器方法，返回的 Nono 或 Flux 其实是一个”流“对象，就像 jdk8的Stream一样，
+        如果没有调用流对象（Nono 或 Flux）的终止方法时，流的中间操作是不会执行的。所以不会阻塞控制器方法。
+
+7,SSE(server-sent events)，
+  SSE 是一次请求，多次返回，因此适用于一些服务器向客户端推送数据的场景，而且会自动重连，即一次请求结束后，会自动发起下一次重连。
+
+  如何实现呢？
+  1.1 Servlet 如何支持 sse
+      void service(HttpServletRequest req,HttpServletResponse response){
+        response.setContentType("text/event-stream");  //这个必须要有
+        response.setCharacterEncoding("utf-8");        //这个必须是utf-8
+        response.get
+
+        for(int i=0;i<10;i++){
+            //指定事件的标志，需要指定事件标志时才指定，否则用默认的即可。
+            response.getWriter().write("event:me\n");
+            //输出内容固定写法："data:" + 数据 + "\n\n";
+            response.getWriter().write("data:" + i + "\n\n");
+            response.getWriter().flush(); //每次响应数据需要 flush
+
+            Thread.sleep(1000 * 10);
+        }
+
+      }
+  1.2 h5如何支持 sse
+     <script>
+        //var sse = new EventSource("后端服务的地址，可以是相对地址");
+        var sse = new EventSource("myServlet");
+
+        //在后端没有指定“事件标志”时，默认会响应这个方法
+        sse.onmessage= function(e){ //接收服务端发送的消息
+            console.log("message",e.data);
+        }
+
+        //当后端指定“事件标志”时，需要添加指定事件的监听器才能获取到响应的消息
+        //sse.addEventListener("事件名称",function(e){});
+        sse.addEventListener("me",function(e){
+            console.log("me event",e.data);
+            if(e.data == 3){
+                // 关闭sse，否则sse会自动重写连接后端
+                sse.close();
+            }
+        });
+     </script>

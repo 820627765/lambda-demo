@@ -1,0 +1,18 @@
+collect(); // 收集终止操作，参数是一个收集器 Collectors
+收集器可以实现如下功能：
+    1，将数据收集为集合
+        .collect(Collectors.toCollection(TreeSet::new));
+    2，收集统计
+        .collect(Collectors.summarizingInt(Student::getAge));
+        会将流中的所有学生的年龄进行收集为如：{count=12,sum=121,min=6,max=14,average = 10.03333} 的统计对象
+        即，收集总数，最大值，最小值，平均值等
+    3，分块
+        Collectors.partitioningBy(stu -> stu.getGender() == Gender.MALE);
+        会按照 true/false 将流中的男/女生进行分块，结果是: Map<Boolean,List<Student>>
+    4，分组，也是分块的一类
+        Collectors.groupingBy(Student::getGrade);
+        会按照年级进行分组，结果为： Map<Grade,List<Student>>
+    5，分组再收集
+        Collectors.groupingBy(Student::getGrade,Collectors.couting());
+        分组后，求出每个分组的个数，结果为：Map<Grade,Long>
+

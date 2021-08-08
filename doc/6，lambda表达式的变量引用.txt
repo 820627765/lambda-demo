@@ -1,0 +1,6 @@
+String str = "hello";
+Consumer<String> c = s -> System.out.println(s);
+c.accept(str);
+
+实际上，str 是final的，因为str在匿名内部类的函数中使用了，所以必须是 final 的。
+只是因为，jdk8 自动会给它加上 final 所以，我们可以不加。偷个懒。

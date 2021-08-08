@@ -1,0 +1,8 @@
+1，lambda是一个匿名函数，且返回了”函数接口“的对象。所以我们需要告诉它返回的是那个”函数接口“的实例，
+  这就是类型推断。
+
+2，有哪些办法告诉lambda表达式，是返回那个函数接口类型的实例呢？
+   2.1 直接使用变量类型定义
+       Consumer<String> con = (input) -> {System.out.println(input);};
+   2.2 通过强转
+       Object con = (Consumer)(input) -> {System.out.println(input);};

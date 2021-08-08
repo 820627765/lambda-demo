@@ -1,0 +1,62 @@
+工程搭建步骤：
+1，数据库我们选择 MongoDB
+2，加入依赖
+   <dependencies>
+       <!--引入webflux的依赖-->
+       <dependency>
+           <groupId>org.springframework.boot</groupId>
+           <artifactId>spring-boot-starter-webflux</artifactId>
+       </dependency>
+
+       <!--引入mongodb的reactive 依赖-->
+       <dependency>
+           <groupId>org.springframework.boot</groupId>
+           <artifactId>spring-boot-starter-data-mongodb-reactive</artifactId>
+       </dependency>
+   </dependencies>
+
+3，在主启动类启用MongoDB相关的注解
+@EnableReactiveMongoRepositories
+
+4，增加和mongodb表相对应的领域类
+    @Document(collection = "user")
+    @Data
+    public class User {
+        @Id
+        private String id;
+        private String name;
+        private int age;
+    }
+
+
+5,新增操作数据的仓库接口 Repository
+    @Repository
+    public interface UserRepository extends ReactiveMongoRepository<User,String> {
+    }
+
+6，创建控制器和方法
+    @RestController
+    @RequestMapping("/user")
+    public class UserController {
+        private final UserRepository repository;
+
+        public UserController(UserRepository userRepository) {
+            this.repository = userRepository;
+        }
+
+        /**
+         * produces 指定是流一样的返回
+         *
+         * @return
+         */
+        @GetMapping(value = "/", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+        public Flux<User> getAll() {
+            return repository.findAll();
+        }
+    }
+
+7，安装mongodb，然后在项目中配置好 mongodb的配置即可访问
+   spring.data.mongodb.uri=mongodb://localhost:27017/webflux
+
+8，启动项目并访问
+   可以使用 restlet 插件来实现web测试比较好。

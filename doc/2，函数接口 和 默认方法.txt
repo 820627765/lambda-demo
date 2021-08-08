@@ -1,0 +1,46 @@
+lambda表达式的返回值：
+lambda表达式是返回一个实现“指定接口”的对象实例。但是这个“指定接口”只能有一个要实现的方法。
+
+jdk8新特性：函数接口：
+有且仅有一个抽象方法，但是可以有多个非抽象方法的接口。
+@FunctionalInterface 注解用于告诉编译器和开发者当前接口是一个“函数接口”。编译器会去检查满足函数接口的条件，比如
+  是否满足，只有一个要实现的方法。
+  @FunctionalInterface
+  interface Interface1{
+    int doubleNum(int i);
+  }
+
+jdk8新特性：默认方法
+可以给接口提供默认方法，这个默认方法是允许有方法实现的。默认方法用 default 关键字来标识
+  interface Interface1{
+      // 需要实现的接口
+      int doubleNum(int i);
+
+      // 默认方法/默认实现的方法
+      default int add(int x,int y){
+        return x + y;
+      }
+  }
+
+  该接口的实例，是可以直接调用指定的默认方法。
+  默认方法的好处有：
+    1：接口可以定义多个默认实现的方法。
+    2：接口的实现类对象，可以调用共这些默认方法。且调用方式和实现方法一样。
+    3：子类不需要去实现父接口的默认方法。
+    4：子接口是可以重写父接口的默认方法的，且如果要集成的多个父接口，有相同的默认方法，则需要显示说明要
+       继承的是那个父接口的默认方法：
+       interface A{
+        default int add(int x,int y){return x+y;}
+       }
+       interface B{
+        default int add(int x,int y){return x+y;}
+       }
+       interface C extends A,B{
+        @Override //重写父接口的默认方法
+        default int add(int x,int y){
+            // 标识将调用B接口的默认方法(add)
+            return B.supper.add(x,y);
+        }
+       }
+    5：接口也可以带默认实现的方法了。
+

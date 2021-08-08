@@ -1,0 +1,72 @@
+1，jdk为我们提供了很多功能的函数接口，可以直接使用，不需要自己去定义哪些函数接口。
+2，函数接口的调用特点：
+  2.1 lambda表达式整体是会返回一个函数接口的实例。-> 右边的部分是函数接口的唯一抽象方法的实现。左边是函数方法的参数名
+      Function<String,String> function = (input)->{return "abc";};
+  2.2 lambda 表达式可以简写
+      Function<String,String> function = (input)->{return "abc";}; 等于下面
+      Function<String,String> function = input->"abc";
+      即：当参数只有一个时，() 可以省略。当方法只有一个 return "abc"; 时，{} 和 return 可以省略。
+
+3，jdk提供了哪些函数接口呢？
+- Function<T,R> 接受一个输入类型 T，返回一个输出类型 R
+@FunctionalInterface
+public interface Function<T, R> {
+    // 表示接受一个输入以及 apply 方法会返回一个输出
+    R apply(T t);
+    ... 其他默认方法和静态方法
+}
+使用1：
+Function<String, String> function = (input) -> {
+    return "bcd";
+};
+System.out.println(function.apply("my input"));
+使用2：
+public void test1(Function<String,String> function){
+    System.out.println(function.apply("input"));
+}
+main{
+    //
+    test1(input->"abc");
+}
+
+- Predicate<T>   接受一个输入类型 T，返回boolean，用于”断言一个输入“，返回true/false
+@FunctionalInterface
+public interface Predicate<T> {
+    boolean test(T var1);
+    ... 其他默认方法和静态方法
+}
+
+- Consumer<T>  接受一个输入类型 T，无返回，用于消费一个输入。可以称为“数据消费者”
+@FunctionalInterface
+public interface Consumer<T> {
+    void accept(T var1);
+    ... 其他默认方法和静态方法
+}
+
+- Supplier<T>  用于 ”提供/返回“ 一个类型的数据，可以称为“数据提供者”
+@FunctionalInterface
+public interface Supplier<T> {
+    T get();
+    ... 其他默认方法和静态方法
+}
+
+- UnaryOperator<T>  和Function 相同，只是“输入类型” 和 “输出类型” 相同。
+@FunctionalInterface
+public interface UnaryOperator<T> extends Function<T, T> {
+    ... 其他默认方法和静态方法
+}
+
+- BiFunction<T,U,R>  接受两个类型的参数(T,U),返回 R类型
+@FunctionalInterface
+public interface BiFunction<T, U, R> {
+    R apply(T var1, U var2);
+    ... 其他默认方法和静态方法
+}
+
+- BinaryOperator<T> 接受两个参数类型 和 输出类型相同。
+@FunctionalInterface
+public interface BinaryOperator<T> extends BiFunction<T, T, T> {
+    ... 其他默认方法和静态方法
+}
+
+还有很多... java.util.function.*

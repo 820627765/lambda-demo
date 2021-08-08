@@ -1,0 +1,8 @@
+1,级联表达式
+Function<Integer,Function<Integer,Integer>> fun = x-> y -> x + y;
+即 x 是输入，返回 y -> x + y 的函数接口实例。
+其实x 和 y 都得类型，可以是数字 或 字符串都有可能，因为数字 和 字符串都能相加。
+fun.apply(2).apply(3);
+
+2，柯里化：把多个参数得函数转换为只有一个参数的函数。
+  柯里化的目的：函数标准化

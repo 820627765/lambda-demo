@@ -1,0 +1,56 @@
+1，lambda表达式的原始写法
+   (参数列表声明) -> {方法实现逻辑部分}
+    //参数列表没有方法名
+   可以看出，lambda 表达式实际上是一个一个”匿名函数“的“实现”，用箭头来连接“方法参数列表声明“ 和 ”方法逻辑实现“部分。
+   左边是函数的参数列表声明，右边是方法逻辑部分。如：
+   Consumer<String> consumer = (s)       ->     {System.out.println(s);}
+                            参数声明列表          方法的实现逻辑体
+                            可以看出lambda表达式实现了函数接口的抽象函数。
+                            其实整个lambda表达式，返回值是一个”函数接口“的实例。
+
+2，lambda表达式的几种写法
+2.1 方法引用
+    class Dog{
+        public Dog(){}
+        public Dog(String name){}
+        public static void call(Dog dog){
+            System.out.println(dog + "叫了");
+        }
+
+        public int eat(int num){
+            System.out.println("吃了" + num + "斤狗粮");
+            // 返回本身重量 + 吃的重量
+            return 50 + num;
+        }
+    }
+    2.1.1 静态方法引用
+    main{
+        // 原始写法-方法体调用类的静态方法
+        Consumer<Dog> c1 = (dog) -> {Dog.call(dog);}
+        c1.accept(new Dog());
+        // 方法引用写法为
+        Consumer<Dog> c2 = Dog::call;
+        c2.accept(new Dog());
+    }
+
+    2.1.2 非静态方法引用（实例方法引用）
+    Function<Integer,Integer> function = (eatNum) -> {return new Dog().eat(eatNum);};
+    int total = function.apply(2);
+    // 实例方法引用写法1
+    Function<Integer,Integer> function = new Dog()::eat;
+
+    // 实例方法也可以用类调用，因为lambda会默认将参数作为lambda的参数作为 this的那个参数传入，故能调用实例方法。
+    // 实例方法引用写法2-jdk 底层会将传入的new Dog()作为第一个参数 this
+    BiFunction<Dog,Integer,Integer> eatFunction = Dog::eat;
+    eatFunction.apply(new Dog(),2);
+
+    2.1.3 构造函数方法引用-主要还是分析输入 和 输出
+    //基础写法
+    Supplier<Dog> supplier = ()->{return new Dog();}
+    //构造函数引用 - 无参构造函数，没有输入，只有输出
+    Supplier<Dog> supplier = Dog::new;
+    //构造函数引用 - 有参构造函数，有输入，也有输出。jdk 会自动将输入作为构造函数的参数
+    Function<String,Dog> function = Dog::new;
+    function.apply("旺财");
+
+

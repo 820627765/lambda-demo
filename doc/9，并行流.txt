@@ -1,0 +1,27 @@
+class Demo{
+    public static void debug(int i){
+        System.out.println(i);
+        System.out.println(Thread.currentThread().getName());
+    }
+}
+
+
+1，串行流演示
+   IntStream.range(1,100).peek(Demo::debug).count();
+   从结果可以看出，peek中的逻辑是”串行执行的“
+
+2，并行流演示 parallel()
+   IntStream.range(1,100).parallel().peek(Demo::debug).count();
+   从结构就可以看出，输出顺序是乱的，也就是并行输出的
+
+
+
+parallel() 将流变为”并行流“
+sequential() 将流变为”串行流“
+且流中，多次调用并行和串行流转换，将会以最后一次为准。
+且，并行流使用的线程池是 ForkJoinPool.commonPool，该线程池默认的线程数是当前机器的 CPU个数，可以使用
+  System.setProperty(" java.util.concurrent.ForkJoinPool.common.parallelism",20); 进行修改默认线程数
+且，因为并行流默认都使用 ForkJoinPool.commonPool 作为线程池，而系统可能其他地方也会用该线程池，所以可能会导致阻塞，那么我们可以设置指定的线程池：如下
+   ForkJoinPool pool = new ForkJoinPool(20);
+   pool.submit(()->IntStream.range(1,100).parallel().peek(Demo::debug).count());
+   pool.shutdown();

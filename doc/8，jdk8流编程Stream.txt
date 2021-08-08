@@ -1,0 +1,83 @@
+1，概念
+   并不是容器，也不是io流，是一个高级的迭代器，关注如何将数据高效地处理。类似流水线的处理思想。
+
+2，流创建
+  集合创建流：Collection.stream
+            Collection.parallelStream
+           如：
+           List<String> list = new ArrayList<String>();
+           list.stream();
+           list.parallelStream();
+
+  数组：Arrays.stream
+       如：
+       Arrays.stream(new int[]{1,2,3,4});
+
+  数字Stream：
+            //如下的数字流，并不是 Stream 的子类。当需要将他们转换为 Stream时，需要进行装箱，调用 boxed()
+            // 如 IntStream.of(1,2,3).boxed();
+            IntStream
+            LongStream
+            Random.ints
+            Random.longs
+            如：
+            IntStream.of(1,2,3);
+            IntStream.rangeClosed(1,10); //创建一个1到10的流
+            new Random().ints();// 这是一个数字的无限流
+            new Random().ints().limit(10); //一个10各数字的整数流
+
+  自己创建：
+    Stream.generate
+    Stream.iterate
+        如：
+        Stream.generate(()->new Random().nextInt()).limit(20);
+
+3，Stream 流的中间操作
+    map  ：将流中的每个元素作为输入，然后输出一个内容
+                                               //输入每个单词，返回每个单词的长度
+        Stream.of("my name is 007".split(" ")).map(s->s.length()).foreach(System.out::println);
+    flatMap ：用于流中的每个元素，都有一个集合属性，最终得到流中所有元素的的集合属性集合。
+                                               //输入每个单词，返回每个单词的所有字符流，最终得到所有单词的字符流，然后 foreach
+        Stream.of("my name is 007".split(" ")).flatmap(s->s.chars()).foreach(System.out::println);
+    filter : 过滤，返回true的元素才保留
+
+    peek  ： peek 用于debug，是个中间操作
+        Stream.of("a b c".split(" ")).peek(System.out::println).foreach(System.out::println);
+
+    distinct
+    sorted
+
+    limit : 用于限制个数
+    skip
+
+
+4，Stream 流的终止操作
+    forEach
+    forEachOrdered ：
+        //最后输出顺序时乱的
+        "my name is 007".chars().parallel().forEach(i->System.out.println((char)i)));
+        // forEachOrdered 保证顺序
+        "my name is 007".chars().parallel().forEachOrdered(i->System.out.println((char)i)));
+    collect  : 将流元素收集为集合
+        Stream.of("a b c".split(" ")).collect(Collectors.toList());
+        Stream.of("a b c".split(" ")).collect(Collectors.toSet());
+    toArray : 将流元素转换为数组
+
+    reduce ：根据指定的计算模型将Stream中的值计算得到一个最终结果
+        // 将每个元素用 | 连接起来，最终返回字符串
+        Stream.of("a b c".split(" ")).reduce((s1,s2) -> s1 + "|" + s2);
+        //有三种写法 参考：https://blog.csdn.net/weixin_43860260/article/details/94875064
+
+    min ： 取最小值，可以传入一个比较器
+    max ： 取最大值，可以传入一个比较器
+    count ：
+
+    findFirst ：获取流中的第一个元素
+    findAny   ：获取流中任意一个元素即可
+
+    allMatch  ：流中元素任意一个元素成功，返回true
+        list.stream().allMatch(f -> f == (1));
+    anyMatch  ：流中元素所有元素成功，返回true
+        list.stream().anyMatch(f -> f == (1));
+    noneMatch ：流中元素所有的都不是，返回true
+        list.stream().noneMatch(f -> f == (1));
