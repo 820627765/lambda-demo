@@ -1,0 +1,45 @@
+1，概述
+浏览器调用后台接口时，对于原始SpringMVC 的方式 或 基于WebFlux 的Mono 或 Flux 的返回方式效果是一样的。
+
+2，我们要开发一个怎么样的调用框架呢？
+   声明式的调用方式：
+   2.1 参考 feign 的调用方式
+   2.2 参考 retrofit 的调用方式  （更多用在 android 上）
+
+
+3，自己实现
+   // 返回对象的类名可以随意，字段保持一致即可，因为是采用json传输的
+   @ApiServer("http://localhost:8080/user")  //通过自定义注解，指定要访问的服务器的访问地址
+   public interface IUserApi{
+        @GetMapping("/")
+        Flux<User> getAllUser();
+
+        @GetMapping("/{id}")
+        Mono<User> getUserById()@PathVariable("id") String id;
+
+        @DeleteMapping("/{id}")
+        Mono<Void> deleteByUserId(@PathVariable("id") String id);
+
+        @PostMapping("/")
+        Mono<User> createUser(@RequestBody User user);
+   }
+
+   @RequestController
+   public class TestController{
+        @Autowired
+        IUserApi userApi;
+
+        @GetMapping("/")
+        public void test(){
+            // 直接调用，实现调用rest接口的效果
+            Flux<User> users = userApi.getAllUser();
+            users.subscribe(System.out::println);
+        }
+   }
+
+   // 指定服务器访问地址的自定义注解
+   @Target(ElementType.TYPE)
+   @Retention(RetentionPolicy.RUNTIME)
+   public @interface ApiServer{
+        String value() default "";
+   }

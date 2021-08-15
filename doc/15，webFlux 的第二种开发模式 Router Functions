@@ -1,0 +1,105 @@
+1，概述
+我们知道 webflux 可以运行在 servlet3.1以上的容器上，也可以运行在netty上。原因是它对于这两种容器之间的共同点做了
+一层抽象，如:
+用 ServerRequest 对应原来的 HttpServletRequest
+用 ServerResponse 对应原来的 HttpServletResponse
+
+2，使用Router Functions 的开发过程如下：
+2.0 引入依赖
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-webflux</artifactId>
+    </dependency>
+2.1 开发 HandlerFunction (输入是 ServerRequest ，返回是 ServerResponse)
+2.2 开发 RouterFunction (将请求URL 和 HandlerFunction 对应起来）
+2.3 将 RouterFunction 封装为 HttpHandler
+2.4 将 HttpHandler 交给 Server 处理（这里的Server 指的是：netty 或 Servlet3.1及以上的容器）
+案例：
+1，编写一个 RouterFunction，这个就相当于 DispatchServlet ，即springMVC的总入口
+public class AllRouters{
+    @Bean
+    public RouterFunction<ServerResponse> userRouter(UserHandler userHandler){
+        return RouterFunctions.nest(
+                RequestPredicates.path("/user"),  //绑定请求是那个，相当于Controller类上的@RequestMapping
+                RouterFunctions.route(
+                    RequestPredicates.GET("/"),   //绑定具体的请求，相当于Controller类中具体某个处理方法的 @RequestMapping 或 @GetMapping等
+                    userHandler::getAllUser       //这个就是对应处理的方法
+                )
+                .andRoute(                        // 添加一个Router Function
+                   RequestPredicates.POST("/")    //绑定请求，这是post请求
+                                    .and(RequestPredicates.accept(MediaType.APPLICATION_JSON)) // 绑定接收的是JSON格式的数据
+                   ,
+                   userHandler::createUser        //指定对应的处理方法
+                )
+                .andRoute(
+                   RequestPredicates.DELETE("/{id}")    //这是 delete 请求，且是REST风格的请求
+                   ,
+                   userHandler::deleteUserById        //指定对应的处理方法
+                )
+            );
+    }
+}
+
+2，这个相当于 springMVC 的Controller
+@Component
+public class UserHandler{
+    // 如下的一些方法就是 HandlerFunction ，输入都是 ServerRequest，输出都是ServerResponse
+    public Mono<ServerResponse> getAllUser(ServerRequest request){
+        return ServerResponse
+            .ok()
+            .contentType(MediaType.APPLICATION_JSON_UTF8)
+            .body(Flux.fromArray(new User[]{new User(),new User()}),User.class);
+    }
+
+    public Mono<ServerResponse> createUser(ServerRequest request){
+        // 获取请求参数
+        Mono<User> user = request.bodyToMono(User.class);
+        // 注意，不能在这里将 user 从 Mono流中取出，如果取出该方法就编程阻塞方法了。且springboot 也会报异常。
+        return user.flatMap(u->{
+             // 参数校验的代码需要方在这里，关于验证后异常的处理，看下方的异常处理代码
+             // 参数验证的处理逻辑，放在其他地方去处理，比较干爽
+             CheckUtil.checkName(u.getName());
+             return ServerResponse
+                .ok()
+                .contentType(MediaType.APPLICATION_JSON_UTF8)
+                .body(this.repository.saveAll(user),User.class);
+        });
+    }
+
+    public Mono<ServerResponse> createUser(ServerRequest request){
+        // 获取请求参数
+        String id = request.pathVariable("id");
+        return this.repository.findById(id)
+                              .flatMap(user->this.repository.delete(user).then(ServerResponse.ok().build()))
+                              .switchIfEmpty(ServerResponse.notFound().build());
+    }
+}
+
+3，异常处理代码，当发生了异常，就会进入该代码
+@Component
+@Order(-2)  //由于springboot 默认有多个处理异常的Handler，所以我们要把优先级调高，否则不会工作
+public class ExceptionHandler implements WebExceptionHandler{
+    @Override
+    public Mono<Void> handle(ServerWebExchange exchange,Throwable ex){
+        ServerHttpResponse response = exchange.getResponse();
+        // 设置响应头500
+        response.setStatusCode(HttpStatus.BAD_REQUEST);
+        // 设置返回类型
+        response.getHeaders().setContentType(MediaType.TEXT_PLAIN);
+        // 获取异常信息
+        String errorMsg = toStr(ex);
+
+        // 设置异常消息，并响应数据给调用方
+        return response.writeWith(Mono.just(response.bufferFactory().wrap(errorMsg.getBytes())));
+    }
+
+    private String toStr(Throwable ex){
+        //已知道的异常
+        if(ex instanceof CheckException){
+            return ex.getMessage();
+        }else{
+            ex.printStackTrace(); //打印堆栈，或记录日志，方便定位问题
+            return "未知异常";      //不能把底层异常抛给前端
+        }
+    }
+}
